@@ -321,7 +321,6 @@ fr_sbuff_escape_rules_t fr_value_escape_solidus = {
 	.subs = {
 		['%'] = '%',	/* xlat expansions */
 		['/'] = '/',	/* Quoting char */
-		['\\'] = '\\',
 		['a'] = '\a',
 		['b'] = '\b',
 		['e'] = '\\',
@@ -330,9 +329,9 @@ fr_sbuff_escape_rules_t fr_value_escape_solidus = {
 		['t'] = '\t',
 		['v'] = '\v'
 	},
-//	.skip = {
-//		['\\'] = '\\'	/* Leave this for the regex library */
-//	},
+	.skip = {
+		['\\'] = '\\'	/* Leave this for the regex library */
+	},
 	.do_hex = true,
 	.do_oct = true
 };
