@@ -159,6 +159,8 @@ typedef struct {
 typedef struct {
 	char		chr;				//!< Character at the start of an escape sequence.
 	char const	subs[UINT8_MAX + 1];		//!< Special characters and their substitutions.
+							///< Indexed by the printable representation i.e.
+							///< 'n' for \n.
 	bool		skip[UINT8_MAX + 1];		//!< Characters that are escaped, but left in the
 							///< output along with the escape character.
 							///< This is useful where we need to interpret escape
@@ -166,20 +168,34 @@ typedef struct {
 							///< be passed off to a 3rd party library which will
 							///< need to interpret the same sequences.
 
-	bool		esc[UINT8_MAX + 1];		//!< Characters that should be translated to hex or
-							///< octal escape sequences.
-	bool		do_utf8;			//!< Process utf8 multi-byte sequences before applying
-							///< escaping rules.
-
 	bool		do_hex;				//!< Process hex sequences i.e. \x<hex><hex>.
 	bool		do_oct;				//!< Process oct sequences i.e. \<oct><oct><oct>.
+} fr_sbuff_unescape_rules_t;
+
+/** Set of parsing rules for *unescape_until functions
+ *
+ */
+typedef struct {
+	char		chr;				//!< Character at the start of an escape sequence.
+
+	char const	subs[UINT8_MAX + 1];		//!< Special characters and their substitutions.
+							///< Indexed by the binary representation i.e.
+							///< 0x0a for \n.
+	bool		esc[UINT8_MAX + 1];		//!< Characters that should be translated to hex or
+							///< octal escape sequences.
+	bool		do_utf8;			//!< If true Don't apply escaping rules to valid UTF-8 sequences.
+
+	bool		do_hex;				//!< Represent escaped chars as hex sequences i.e.
+							///< \x<hex><hex>.
+	bool		do_oct;				//!< Represent escapes chars as octal sequences i.e.
+							///< \<oct><oct><oct>.
 } fr_sbuff_escape_rules_t;
 
 /** A set of terminal sequences, and escape rules
  *
  */
 typedef struct {
-	fr_sbuff_escape_rules_t const	*escapes;	//!< Escape characters
+	fr_sbuff_unescape_rules_t const	*escapes;	//!< Escape characters
 
 	fr_sbuff_term_t const		*terminals;	//!< Terminal characters used as a hint
 							///< that a token is not complete.
@@ -1087,11 +1103,11 @@ ssize_t	fr_sbuff_in_vsprintf(fr_sbuff_t *sbuff, char const *fmt, va_list ap);
 ssize_t	fr_sbuff_in_sprintf(fr_sbuff_t *sbuff, char const *fmt, ...);
 #define	FR_SBUFF_IN_SPRINTF_RETURN(...) FR_SBUFF_RETURN(fr_sbuff_in_sprintf, ##__VA_ARGS__)
 
-ssize_t	fr_sbuff_in_snprint(fr_sbuff_t *sbuff, char const *in, size_t inlen, char quote);
-#define	FR_SBUFF_IN_SNPRINT_RETURN(...) FR_SBUFF_RETURN(fr_sbuff_in_snprint, ##__VA_ARGS__)
+ssize_t	fr_sbuff_in_escape(fr_sbuff_t *sbuff, char const *in, size_t inlen, fr_sbuff_escape_rules_t const *e_rules);
+#define	FR_SBUFF_IN_ESCAPE_RETURN(...) FR_SBUFF_RETURN(fr_sbuff_in_escape, ##__VA_ARGS__)
 
-ssize_t	fr_sbuff_in_snprint_buffer(fr_sbuff_t *sbuff, char const *in, char quote);
-#define	FR_SBUFF_IN_SNPRINT_BUFFER_RETURN(...)	FR_SBUFF_RETURN(fr_sbuff_in_snprint_buffer, ##__VA_ARGS__)
+ssize_t	fr_sbuff_in_escape_buffer(fr_sbuff_t *sbuff, char const *in, fr_sbuff_escape_rules_t const *e_rules);
+#define	FR_SBUFF_IN_ESCAPE_BUFFER_RETURN(...)	FR_SBUFF_RETURN(fr_sbuff_in_escape_buffer, ##__VA_ARGS__)
 
 /** Lookup a string in a table using an integer value, and copy it to the sbuff
  *
@@ -1131,7 +1147,7 @@ size_t	fr_sbuff_out_bstrncpy_until(fr_sbuff_t *out, fr_sbuff_t *in, size_t len,
 
 size_t	fr_sbuff_out_unescape_until(fr_sbuff_t *out, fr_sbuff_t *in, size_t len,
 				    fr_sbuff_term_t const *tt,
-				    fr_sbuff_escape_rules_t const *rules);
+				    fr_sbuff_unescape_rules_t const *u_rules);
 
 /** Find the longest prefix in an sbuff
  *
@@ -1248,7 +1264,7 @@ static inline size_t fr_sbuff_out_abstrncpy_until(TALLOC_CTX *ctx, char **out, f
 SBUFF_OUT_TALLOC_FUNC_DEF(fr_sbuff_out_bstrncpy_until, in, len, tt, escape_chr);
 
 static inline size_t fr_sbuff_out_aunescape_until(TALLOC_CTX *ctx, char **out, fr_sbuff_t *in, size_t len,
-						  fr_sbuff_term_t const *tt, fr_sbuff_escape_rules_t const *rules)
+						  fr_sbuff_term_t const *tt, fr_sbuff_unescape_rules_t const *rules)
 SBUFF_OUT_TALLOC_FUNC_DEF(fr_sbuff_out_unescape_until, in, len, tt, rules);
 /** @} */
 
